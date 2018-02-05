@@ -1,0 +1,27 @@
+// out: styles.css, sourcemap: true, compress: true
+
+
+html, body{
+  margin: 0;
+}
+#overlay{
+  position: relative;
+  height: 80vh;
+  overflow: hidden;
+  background: black;
+  iframe{
+    visibility: visible !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    z-index: 0;
+    opacity: 0;
+    transition: 0ms ease;
+    &.active{
+      z-index: 2;
+      opacity: 1;
+    }
+  }
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!---------------------------------------------------;
+Youtube BG Seamless
+Experiment: @SamJ - sam@samdjames.uk
+----------------------------------------------------->
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Youtube fullscreen mixer</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body onLoad="main()">
+    <div id="overlay"></div>
+    <script type="text/javascript" src="mixer.js"></script>
+    <script>
+    // App Entry Point
+    function main(){
+      addClips();
+    };
+
+    // Application Code
+    function addClips() {
+      let clipLength = -1; // Length Of Clips to play @TODO
+      let barbers = true; // Play barbers libary of clips (Longer)
+      if(barbers){
+        SamJ_Mixer.playlist.push("rzij2LgU6zg",{start:0,playfor:clipLength});
+        SamJ_Mixer.playlist.push("g5KeuEf1UnU",{start:0,playfor:clipLength});
+        SamJ_Mixer.playlist.push("aoYGyr_N8xA",{start:0,playfor:clipLength});
+      }else{
+        SamJ_Mixer.playlist.push("B7bqAsxee4I",{start:0,playfor:clipLength});
+        SamJ_Mixer.playlist.push("iDNWwxJonII",{start:0,playfor:clipLength});
+        SamJ_Mixer.playlist.push("a8c5wmeOL9o",{start:0,playfor:clipLength});
+        SamJ_Mixer.playlist.push("OEwY8VVZDLs",{start:0,playfor:clipLength});
+      };
+      SamJ_Mixer.startPlayer();
+    }
+    </script>
+  </body>
+</html>
