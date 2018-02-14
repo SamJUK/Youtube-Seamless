@@ -12,7 +12,7 @@ Experiment: @SamJ - sam@samdjames.uk
   <body onLoad="main()">
     <div id="overlay"></div>
     <script type="text/javascript" src="mixer.js"></script>
-    <script>
+    <script type="text/javascript">
     // App Entry Point
     function main(){
       addClips();
@@ -23,7 +23,7 @@ Experiment: @SamJ - sam@samdjames.uk
       let clipLength = -1; // Length Of Clips to play @TODO
       let barbers = true; // Play barbers libary of clips (Longer)
       if(barbers){
-        SamJ_Mixer.playlist.push("rzij2LgU6zg",{start:0,playfor:clipLength});
+        SamJ_Mixer.playlist.push("rzij2LgU6zg",{start:0,playfor:5});
         SamJ_Mixer.playlist.push("g5KeuEf1UnU",{start:0,playfor:clipLength});
         SamJ_Mixer.playlist.push("aoYGyr_N8xA",{start:0,playfor:clipLength});
       }else{
@@ -33,7 +33,7 @@ Experiment: @SamJ - sam@samdjames.uk
         SamJ_Mixer.playlist.push("OEwY8VVZDLs",{start:0,playfor:clipLength});
       };
       SamJ_Mixer.startPlayer();
-    }
+    };
     </script>
   </body>
 </html>

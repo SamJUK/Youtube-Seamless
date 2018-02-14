@@ -4,7 +4,7 @@ window.SamJ_Mixer = (function(window){
 	//---------------- Variables
 	//--------------------------
 	let consoleLog = '+ SamJ Mixer: ',
-	fadeOutTime = 1000, // In ms - Crossover fade between clips ting
+	fadeOutTime = 500, // In ms - Crossover fade between clips ting
 	APIReady = false,
 	safezone = (1000 + fadeOutTime), // Safezone in ms added onto last load time
 	loadStartTime = null,
@@ -13,6 +13,7 @@ window.SamJ_Mixer = (function(window){
 	PlaylistReady = false,
 	debug = true,
 	playing = -1,
+	isPlaying = false,
 	playList = [],
 	lastPlayed = null,
 	shuffle = false,
@@ -69,13 +70,13 @@ window.SamJ_Mixer = (function(window){
 
 	// Handle Loading The Video
 	function loadVideo(video){
-		let autoplay = (tVideoVar.length == 0) ? 1 : 0;
+		//let ap = (tVideoVar.length == 0) ? 1 : 0;
 		var tempElement = document.createElement('div');
 		document.getElementById(containerID).appendChild(tempElement);
 		var video = new YT.Player(tempElement, {
 			videoId: video.id,
 			playerVars: {
-				autoplay: autoplay,
+				//autoplay: ap, // Removed as of Jan 2018
 				volume: 0,
 				controls: 0,
 				disablekb:1,
@@ -100,7 +101,14 @@ window.SamJ_Mixer = (function(window){
 	}
 
 	// Handle Preloading next video on vide change
-	function onPlayerReady(){
+	function onPlayerReady(data){
+		data.target.mute();
+		if(!isPlaying){
+			// First Video Play
+			data.target.playVideo();
+			isPlaying = true;
+		}
+
 		if(tVideoVar.length < 2){
 			// Preload Next Video
 			loadNextVideo();
@@ -147,19 +155,25 @@ window.SamJ_Mixer = (function(window){
 	}
 
 	function handlePlayerPlaying(event){
-		// Playback Started! 1.5s from end start transition
 		let length = event.target.getDuration(); // In Seconds
 		let transTime = (loadTime + safezone);
 		if(debug)console.log(consoleLog+'Playing ' + event.target.getVideoData().title);
+
 		nintyTimer = setTimeout(()=>{
 			if(tVideoDom.length > 1){
 				// Play 2nd Videos
 				loadStartTime = Date.now();
 				if(debug)console.log(consoleLog+'Init play of next video');
+				console.log(tVideoVar);
 				tVideoVar[1].playVideo();
 				setTimeout(()=>{
-					tVideoVar[1].a.className = "active";
-					tVideoVar[0].a.className = "";
+					// console.log(tVideoVar[0].getPlayerState());
+					// console.log(tVideoVar[1]);
+					// console.log(Object.keys(tVideoVar[1]));
+					let i = (tVideoVar[1].hasOwnProperty('getPlayerState')) ? 1 : 0;
+					let ii = (i == 1) ? 0 : 1;
+					tVideoVar[i].a.className = "active";
+					tVideoVar[ii].a.className = "";
 				},(fadeOutTime + safezone));
 			}
 		}, (length * 1000) - transTime);
@@ -176,6 +190,7 @@ window.SamJ_Mixer = (function(window){
 		onAPIReady: onAPIReady,
 		startPlayer: startPlayer,
 		debug: debug,
+		tVideoDom: tVideoDom,
 		tVideoVar: tVideoVar
 	};
 
