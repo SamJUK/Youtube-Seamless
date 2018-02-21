@@ -3,24 +3,26 @@ window.SamJ_Mixer = (function(window){
 	//--------------------------
 	//---------------- Variables
 	//--------------------------
-	let consoleLog = '+ SamJ Mixer: ',
-	fadeOutTime = 500, // In ms - Crossover fade between clips ting
-	APIReady = false,
-	safezone = (1000 + fadeOutTime), // Safezone in ms added onto last load time
-	loadStartTime = null,
-	firstplay = true,
-	loadTime = 1500, // Default Load Time Value ms
-	PlaylistReady = false,
-	debug = true,
-	playing = -1,
-	isPlaying = false,
-	playList = [],
-	lastPlayed = null,
-	shuffle = false,
-	containerID = 'overlay',
-	nintyTimer = null,
-	tVideoVar = [],
-	tVideoDom = [];
+	var consoleLog = '+ SamJ Mixer: ',
+			startImage = null,
+			startImageShowing = false,
+			fadeOutTime = 500, // In ms - Crossover fade between clips ting
+			APIReady = false,
+			safezone = (1000 + fadeOutTime), // Safezone in ms added onto last load time
+			loadStartTime = null,
+			firstplay = true,
+			loadTime = 1500, // Default Load Time Value ms
+			PlaylistReady = false,
+			debug = true,
+			playing = -1,
+			isPlaying = false,
+			playList = [],
+			lastPlayed = null,
+			shuffle = false,
+			containerID = 'overlay',
+			nintyTimer = null,
+			tVideoVar = [],
+			tVideoDom = [];
 
 	//--------------------------
 	//------- Internal Functions
@@ -28,20 +30,21 @@ window.SamJ_Mixer = (function(window){
 
 	// Load API Youtube
 	(function init(){
+
 		if(debug) console.log(consoleLog + "LOADING API");
-		let tag = document.createElement('script');
+		var tag = document.createElement('script');
 		tag.src = "https://www.youtube.com/iframe_api";
 
-		let firstScriptTag = document.getElementsByTagName('script')[0];
+		var firstScriptTag = document.getElementsByTagName('script')[0];
 		firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 	})();
 
 	// Handle Adding Videos To Playlist
 	function playlistPush(id, opts){
-		if(debug)console.log(`${consoleLog}#${id} has been pushed to the playlist.`);
+		if(debug)console.log(consoleLog+'#'+id+' has been pushed to the playlist.');
 
 		// Default Options
-		let temp = {};
+		var temp = {};
 		temp.id = id;
 		temp.start = opts.start || 0;
 		temp.end = opts.playfor || -1;
@@ -123,6 +126,7 @@ window.SamJ_Mixer = (function(window){
 
 	// User Invoked Start
 	function startPlayer(){
+		//handleBufferImage();
 		PlaylistReady = true;
 		if(APIReady)loadNextVideo();
 	}
@@ -155,29 +159,55 @@ window.SamJ_Mixer = (function(window){
 	}
 
 	function handlePlayerPlaying(event){
-		let length = event.target.getDuration(); // In Seconds
-		let transTime = (loadTime + safezone);
+		var length = event.target.getDuration(); // In Seconds
+		var transTime = (loadTime + safezone);
 		if(debug)console.log(consoleLog+'Playing ' + event.target.getVideoData().title);
 
-		nintyTimer = setTimeout(()=>{
+		if(document.getElementsByClassName('bufferImage').length > 0){
+			document.getElementsByClassName('bufferImage')[0].style.opacity = 0;
+		}
+
+		nintyTimer = setTimeout(function(){
 			if(tVideoDom.length > 1){
 				// Play 2nd Videos
 				loadStartTime = Date.now();
 				if(debug)console.log(consoleLog+'Init play of next video');
 				console.log(tVideoVar);
 				tVideoVar[1].playVideo();
-				setTimeout(()=>{
+				setTimeout(function(){
 					// console.log(tVideoVar[0].getPlayerState());
 					// console.log(tVideoVar[1]);
 					// console.log(Object.keys(tVideoVar[1]));
-					let i = (tVideoVar[1].hasOwnProperty('getPlayerState')) ? 1 : 0;
-					let ii = (i == 1) ? 0 : 1;
+					var i = (tVideoVar[1].hasOwnProperty('getPlayerState')) ? 1 : 0;
+					var ii = (i == 1) ? 0 : 1;
 					tVideoVar[i].a.className = "active";
 					tVideoVar[ii].a.className = "";
 				},(fadeOutTime + safezone));
 			}
 		}, (length * 1000) - transTime);
 		if(debug)console.log(consoleLog+'Set Transition for: ' + ((length * 1000) - transTime) / 1000 + 's' + ' : Length is ' + length + 's')
+	}
+
+	function handleBufferImage(){
+		if(SamJ_Mixer.startImage.get() !== null){
+			var img = document.createElement('img');
+			img.className = 'bufferImage';
+			img.src = SamJ_Mixer.startImage.get();
+			document.getElementById(containerID).appendChild(img);
+			SamJ_Mixer.startImageShowing(true);
+		}
+	}
+
+	function setStartImage(src){
+		if(src === '' || typeof(src) !== 'string') return console.error(consoleLog + 'Start image is not a string or is empty!');
+		this.startImage = src;
+	}
+	function getStartImage(){
+		return this.startImage;
+	}
+	function toggleBufferImage(bool){
+		if(typeof(bool) !== 'boolean') return console.log(consoleLog + 'Toggle Buffer Image Requires a boolean as a parameter');
+		return startImageShowing = !startImageShowing;
 	}
 
 	//--------------------------
@@ -191,7 +221,12 @@ window.SamJ_Mixer = (function(window){
 		startPlayer: startPlayer,
 		debug: debug,
 		tVideoDom: tVideoDom,
-		tVideoVar: tVideoVar
+		tVideoVar: tVideoVar,
+		startImage: {
+			get: getStartImage,
+			set: setStartImage
+		},
+		startImageShowing: toggleBufferImage
 	};
 
 	return SamJ_Mixer;
