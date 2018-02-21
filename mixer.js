@@ -5,6 +5,7 @@ window.SamJ_Mixer = (function(window){
 	//--------------------------
 	var consoleLog = '+ SamJ Mixer: ',
 			startImage = null,
+			keepAspectRatio = true,
 			startImageShowing = false,
 			fadeOutTime = 500, // In ms - Crossover fade between clips ting
 			APIReady = false,
@@ -37,6 +38,8 @@ window.SamJ_Mixer = (function(window){
 
 		var firstScriptTag = document.getElementsByTagName('script')[0];
 		firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+		window.addEventListener('resize', handleWindowResize);
 	})();
 
 	// Handle Adding Videos To Playlist
@@ -172,7 +175,6 @@ window.SamJ_Mixer = (function(window){
 				// Play 2nd Videos
 				loadStartTime = Date.now();
 				if(debug)console.log(consoleLog+'Init play of next video');
-				console.log(tVideoVar);
 				tVideoVar[1].playVideo();
 				setTimeout(function(){
 					// console.log(tVideoVar[0].getPlayerState());
@@ -202,13 +204,22 @@ window.SamJ_Mixer = (function(window){
 		if(src === '' || typeof(src) !== 'string') return console.error(consoleLog + 'Start image is not a string or is empty!');
 		this.startImage = src;
 	}
+
 	function getStartImage(){
 		return this.startImage;
 	}
+
 	function toggleBufferImage(bool){
 		if(typeof(bool) !== 'boolean') return console.log(consoleLog + 'Toggle Buffer Image Requires a boolean as a parameter');
 		return startImageShowing = !startImageShowing;
 	}
+
+	function handleWindowResize(){
+		for(var key in tVideoVar){
+			tVideoVar[key].setSize(window.innerWidth, window.innerHeight);
+		}
+	}
+
 
 	//--------------------------
 	//------------ Get | Setters
@@ -226,17 +237,17 @@ window.SamJ_Mixer = (function(window){
 			get: getStartImage,
 			set: setStartImage
 		},
-		startImageShowing: toggleBufferImage
+		startImageShowing: toggleBufferImage,
+		windowResized: handleWindowResize
 	};
 
 	return SamJ_Mixer;
 })(window);
-
 
 // Need to be declared in global Scope
 (function(){
 	window.onYouTubeIframeAPIReady = function() {
 		if(SamJ_Mixer.debug)console.log("+ SamJ Mixer: API READY");
 		SamJ_Mixer.onAPIReady();
-	}
+	};
 })();

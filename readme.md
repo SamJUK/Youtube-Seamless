@@ -26,3 +26,4 @@ Mobile - Android
 - [ ] Handle Letterbox View / Full Screen
 - [ ] Support Overlay / Hide For First Video Load
 - [ ] Autoplay Native Android Browsers
+- [ ] Buggy on network drop
