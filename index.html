@@ -9,36 +9,22 @@ Experiment: @SamJ - sam@samdjames.uk
     <title>Youtube fullscreen mixer</title>
     <link rel="stylesheet" href="styles.css">
   </head>
-  <body onLoad="main()">
+  <body>
     <div id="overlay" class="gradient">
       <img class="bufferImage" src="http://barberblades.bigeyedeers.co.uk/media/wysiwyg/barbers.jpg"/>
     </div>
-    <h2 id="asd">DEBUG: <br></h2>
     <script type="text/javascript" src="mixer.js"></script>
     <script type="text/javascript">
     // App Entry Point
-    function main(){
-      addClips();
-    };
-
-    // Application Code
-    function addClips() {
-      var clipLength = -1; // Length Of Clips to play @TODO
-      var barbers = true; // Play barbers libary of clips (Longer)
-      if(barbers){
-        //SamJ_Mixer.startImage.set('http://barberblades.bigeyedeers.co.uk/media/wysiwyg/barbers.jpg');
-        SamJ_Mixer.playlist.push("rzij2LgU6zg",{start:0,playfor:clipLength});
-        SamJ_Mixer.playlist.push("g5KeuEf1UnU",{start:0,playfor:clipLength});
-        SamJ_Mixer.playlist.push("aoYGyr_N8xA",{start:0,playfor:clipLength});
-      }else{
-        //SamJ_Mixer.startImage.set('http://www.colorhexa.com/333333.png');
-        SamJ_Mixer.playlist.push("B7bqAsxee4I",{start:0,playfor:clipLength});
-        SamJ_Mixer.playlist.push("iDNWwxJonII",{start:0,playfor:clipLength});
-        SamJ_Mixer.playlist.push("a8c5wmeOL9o",{start:0,playfor:clipLength});
-        SamJ_Mixer.playlist.push("OEwY8VVZDLs",{start:0,playfor:clipLength});
-      };
-      SamJ_Mixer.startPlayer();
-    };
+    (function(){
+         SamJ_Mixer.gapi.key = 'AIzaSyABhTcgr8hZMjKR8vr4mz38_tfXwLpKedk';
+         SamJ_Mixer.playlist.id = 'PLDK2mInrNdmFMonMI1O1TQiziGQ0fKI20';
+         SamJ_Mixer.shuffle = true;
+         // SamJ_Mixer.playlist.push("rzij2LgU6zg",{start:0,playfor:-1});
+         // SamJ_Mixer.playlist.push("g5KeuEf1UnU",{start:0,playfor:-1});
+         // SamJ_Mixer.playlist.push("aoYGyr_N8xA",{start:0,playfor:-1});
+         // SamJ_Mixer.startPlayer();
+    })();
     </script>
   </body>
 </html>
