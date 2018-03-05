@@ -24,6 +24,5 @@ Mobile - Android
 
 ## Todo
 - [ ] Handle Letterbox View / Full Screen
-- [ ] Support Overlay / Hide For First Video Load
 - [ ] Autoplay Native Android Browsers
-- [ ] Buggy on network drop
+- [ ] Buggy on network drop / Slow Connection Detection
