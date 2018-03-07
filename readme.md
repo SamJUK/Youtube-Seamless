@@ -25,4 +25,4 @@ Mobile - Android
 - [ ] Audio & Audio Crossfade
 - [ ] Handle Letterbox View / Full Screen
 - [ ] Autoplay Native Android Browsers
-- [ ] Buggy on network drop / Slow Connection Detection
+- [ ] Handle Network Drops

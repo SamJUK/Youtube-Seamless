@@ -21,7 +21,7 @@ window.SamJ_Mixer = (function (window) {
         loadTime = 1500, 				// Default Load Time Value ms
         PlaylistReady = false,			// Is the playlist ready to be played?
         debug = true,					// Is script in debug mode (Console Logging)
-        playing = -1,					// Current playing videos Index
+        playing = 0,					// Current playing videos Index
         isPlaying = false,				// Is a video currently playing
         queue = [],						// Array containing video ID's and parameters
         playlistId = null,				// If using a youtube playlist, its ID
@@ -30,10 +30,7 @@ window.SamJ_Mixer = (function (window) {
         nintyTimer = null,				// Timer to initiate Crossfade
         tVideoVar = [],					// Container for youtube player JS Elections
         tVideoDom = [],					// Container for Youtube player DOM Elements
-        networkTestStart = null,        // Start time of the network speedtest
-        networkSpeedKbps = null,        // Network Speed in Kbps
-        networkSpeedMbps = null,        // Network Speed In Mbps
-        speedTestInterval = null;
+        lastBufferStartTime = null;     // Epoch time of when the last buffer started
 
     //--------------------------
     //------- Internal Functions
@@ -41,6 +38,7 @@ window.SamJ_Mixer = (function (window) {
 
     /**
      * Inject Youtube API
+     * @TODO: Add config flags to not load x API (Project may already load in other script)
      */
     (function init() {
 
@@ -54,17 +52,6 @@ window.SamJ_Mixer = (function (window) {
         }
 
         window.addEventListener('resize', handleWindowResize);
-
-        if (typeof(SamJ_Mixer) !== 'undefined')
-            networkDownloadTest();
-        else
-            speedTestInterval = setInterval(function () {
-                if (typeof(SamJ_Mixer) !== 'undefined') {
-                    clearInterval(speedTestInterval);
-                    networkDownloadTest();
-                }
-            }, 500);
-
     })();
 
     /**
@@ -100,11 +87,11 @@ window.SamJ_Mixer = (function (window) {
             // Shuffle Play
             var unique = false;
             while (!unique) {
-                playing = Math.round(Math.random() * queue.length);
+                playing = Math.round(Math.random() * queue.length) - 1;
                 if (lastPlayed === null || playing !== lastPlayed) unique = true;
             }
         }
-
+        if (playing < 0) playing = 0;
         if (debug) console.log(consoleLog + 'Loading Next Video: #' + queue[playing].id);
         loadVideo(queue[playing]);
 
@@ -222,14 +209,11 @@ window.SamJ_Mixer = (function (window) {
      * @param event
      */
     function handlePlayerPlaying(event) {
+        if (debug) console.log(consoleLog + '--------------------------');
         if (debug) console.log(consoleLog + 'Next Video Started Playing');
 
-        // No info on previous load time, most likely first load so do nothing
-        if (loadStartTime !== null) {
-            // Calculate how long from starting the video to playing
-            loadTime = Date.now() - loadStartTime;
-            if (debug) console.log(consoleLog + 'Took ' + loadTime + 'ms to init next video play');
-        }
+        loadTime = (new Date()).getTime() - lastBufferStartTime;
+        if(debug) console.log(consoleLog + 'Took ' + loadTime + 'ms to init next video play');
 
         if (debug) console.log(consoleLog + 'Playing ' + event.target.getVideoData().title);
 
@@ -238,7 +222,9 @@ window.SamJ_Mixer = (function (window) {
 
         toggleBufferImage(false);
 
+
         // Create our transition timer
+        // @TODO: Handle network drops, rebuild nintyTimer?
         nintyTimer = setTimeout(function () {
             if (tVideoDom.length <= 1) return;
 
@@ -246,18 +232,20 @@ window.SamJ_Mixer = (function (window) {
             if (debug) console.log(consoleLog + 'Init play of next video');
             loadStartTime = Date.now(); // Set time of transition start
             tVideoVar[1].playVideo();   // Init Play Of Next Video
+        }, ((length * 1000) - transTime) - safezone);
+        if(debug)console.log(consoleLog + 'Video Overlap @ ' + ((((length * 1000) - transTime) - safezone) / 1000).toString() + 's');
 
-            // Fade out timer
-            // @TODO: Make Work Properly Remove Active Class Then Set Active In Delay
-            setTimeout(function () {
-                var i = (tVideoVar[1].hasOwnProperty('getPlayerState')) ? 1 : 0;
-                var ii = (i === 1) ? 0 : 1;
-                tVideoVar[i].a.className = "active";
-                tVideoVar[ii].a.className = "";
-            }, (fadeOutTime + safezone));
-        }, (length * 1000) - transTime);
-
-        if (debug) console.log(consoleLog + 'Set Transition for: ' + ((length * 1000) - transTime) / 1000 + 's' + ' : Length is ' + length + 's');
+        // Fade out timer
+        // @TODO: Make Fade Work Properly
+        // @TODO: Add option to transition when next clip loads or after current clip finishes
+        setTimeout(function () {
+            var i = (tVideoVar[1].hasOwnProperty('getPlayerState')) ? 1 : 0;
+            var ii = (i === 1) ? 0 : 1;
+            tVideoVar[i].a.className = "active";
+            tVideoVar[ii].a.className = "";
+        }, (length * 1000) - fadeOutTime);
+        if(debug) console.log(consoleLog + 'Fadeout @ ' + (((length * 1000) - fadeOutTime) / 1000).toString() + 's');
+        if (debug) console.log(consoleLog + '--------------------------');
     }
 
     /**
@@ -265,7 +253,7 @@ window.SamJ_Mixer = (function (window) {
      * @param event
      */
     function handlePlayerBuffering(event) {
-
+        lastBufferStartTime = (new Date()).getTime();
     }
 
     /**
@@ -275,9 +263,6 @@ window.SamJ_Mixer = (function (window) {
      */
     function toggleBufferImage(bool) {
         //if(typeof(bool) !== 'boolean') bool = !startImageShowing;
-
-        console.log(bool);
-        console.log('ASDASD');
 
         // Hide the buffer image
         if (document.getElementsByClassName('bufferImage').length > 0) {
@@ -296,36 +281,6 @@ window.SamJ_Mixer = (function (window) {
         for (var key in tVideoVar) {
             tVideoVar[key].setSize(window.innerWidth, window.innerHeight);
         }
-    }
-
-    /**
-     * Start Network Speed Test by monitoring the time to download a image
-     */
-    function networkDownloadTest() {
-        networkTestStart = (new Date()).getTime();
-        var url = 'http://via.placeholder.com/350x150';
-
-        var img = document.createElement('img');
-        img.src = url + '?nocache=' + networkTestStart;
-        img.id = 'networkSpeedTest';
-        img.onload = SamJ_Mixer.network.downloadComplete;
-        document.body.appendChild(img);
-    }
-
-    /**
-     * Callback event for when the image we are downloading finishes
-     * @TODO: Calculate transition time based on network speed
-     * @TODO: Use navigator.connection as primary data source (if available)
-     */
-    function networkDownloadComplete() {
-        document.getElementById('networkSpeedTest').remove();
-        var duration = ((new Date()).getTime() - networkTestStart) / 1000;
-        var bitsLoaded = 912 * 8;
-        var speedBps = (bitsLoaded / duration).toFixed(2);
-        networkSpeedKbps = (speedBps / 1024).toFixed(2);
-        networkSpeedMbps = (speedKbps / 1024).toFixed(2);
-        if (debug) console.log(consoleLog + (bitsLoaded / 8) + ' bytes loaded in ' + networkSpeedKbps + ' Kbps');
-        if (debug) console.log(consoleLog + (bitsLoaded / 8) + ' bytes loaded in ' + networkSpeedMbps + ' Mbps');
     }
 
     //--------------------------
@@ -348,15 +303,11 @@ window.SamJ_Mixer = (function (window) {
         startImage: startImage,
         shuffle: shuffle,
         toggleBufferImage: toggleBufferImage,
-        windowResized: handleWindowResize,
-        network: {
-            downloadComplete: networkDownloadComplete
-        }
+        windowResized: handleWindowResize
     };
 
     return SamJ_Mixer;
 })(window);
-
 
 /**
  * Youtube Callback Function, Need to be decalred in global space
