@@ -8,12 +8,14 @@ window.SamJ_Mixer = (function (window) {
     //---------------- Variables
     //--------------------------
     var containerID = 'overlay',		// Container to inject videos into
-        consoleLog = '+ SamJ Mixer: ',	// Console log Suffix
+        version = 1,                    // Script Version Number
+        consoleLog = '+ Youtube Seamless: ',	// Console log Suffix
         GAPIKey = null,					// Google API Key (Used for fetching playlist data)
         GAPImaxResults = 50,			// Youtube Playlist Max Results
         startImage = null,				// URL for buffer image
         startImageShowing = false,		// Is buffer image Showing?
-        fadeOutTime = 500, 				// In ms - Crossover fade between clips ting
+        playAudio = false,              // Allow Clip Audio
+        fadeOutTime = 750, 		        // In ms - Crossover fade between clips ting
         APIReady = false,				// Is the API ready to be used?
         safezone = (1000 + fadeOutTime),// Safezone in ms added onto last load time
         loadStartTime = null,			// Epoch time of the video transition Start
@@ -28,9 +30,12 @@ window.SamJ_Mixer = (function (window) {
         lastPlayed = null,				// Last played track Index
         shuffle = false,				// Choose a random video from the queue each time instead of linear playback
         nintyTimer = null,				// Timer to initiate Crossfade
-        tVideoVar = [],					// Container for youtube player JS Elections
-        tVideoDom = [],					// Container for Youtube player DOM Elements
-        lastBufferStartTime = null;     // Epoch time of when the last buffer started
+        fadeTimer = null,               // Timer for fade between videos
+        tVideoVar = [],					// Container for youtube playerss
+        lastBufferStartTime = null,     // Epoch time of when the last buffer started
+        networkDropped = false,         // Have we dropped connection
+        transitionOnEnd = true,         // Switch to next video at the end of current.
+        audioInterval = null;
 
     //--------------------------
     //------- Internal Functions
@@ -41,6 +46,8 @@ window.SamJ_Mixer = (function (window) {
      * @TODO: Add config flags to not load x API (Project may already load in other script)
      */
     (function init() {
+        var console_info = ["%c Youtube Seamless %cv"+version+" %c https://github.com/SamJUK/youtube-seamless", "background: #000000;color: #00ff99", "background: #000000;color: #fff", ""];
+        console.log.apply(console, console_info);
 
         if (debug) console.log(consoleLog + "LOADING API");
         var apis = ['https://apis.google.com/js/client.js?onload=onGAPIReady', 'https://www.youtube.com/iframe_api'];
@@ -66,7 +73,7 @@ window.SamJ_Mixer = (function (window) {
         var temp = {};
         temp.id = id;
         temp.start = opts.start || 0;
-        temp.end = opts.playfor || -1;
+        temp.end = opts.end || -1;
 
         queue.push(temp);
     }
@@ -109,7 +116,7 @@ window.SamJ_Mixer = (function (window) {
         video = new YT.Player(tempElement, {
             videoId: video.id,
             playerVars: {
-                volume: 0,
+                volume: 1,
                 controls: 0,
                 disablekb: 1,
                 iv_load_policy: 3,
@@ -130,9 +137,8 @@ window.SamJ_Mixer = (function (window) {
             video.a.className = "active";
         }
 
-        // Add to our Youtube Containers
+        // Add to our Youtube Container
         tVideoVar.push(video);
-        tVideoDom.push(tempElement);
     }
 
     /**
@@ -140,8 +146,6 @@ window.SamJ_Mixer = (function (window) {
      * @param data
      */
     function onPlayerReady(data) {
-        data.target.mute();	// Mute Video @TODO: Make Configurable & Add Audio Crossfade
-
         // First Video Play (Simulate Video Click)
         if (!isPlaying) {
             data.target.playVideo();
@@ -156,7 +160,6 @@ window.SamJ_Mixer = (function (window) {
 
     /**
      * Youtube Callback Invoked Start
-     * @TODO: Better Way?
      */
     function onAPIReady() {
         APIReady = true;
@@ -165,7 +168,6 @@ window.SamJ_Mixer = (function (window) {
 
     /**
      * User Invoked Start
-     * @TODO: Better Way?
      */
     function startPlayer() {
         PlaylistReady = true;
@@ -209,43 +211,14 @@ window.SamJ_Mixer = (function (window) {
      * @param event
      */
     function handlePlayerPlaying(event) {
-        if (debug) console.log(consoleLog + '--------------------------');
-        if (debug) console.log(consoleLog + 'Next Video Started Playing');
+        // Mute Video
+        if(!SamJ_Mixer.playAudio)
+            event.target.mute();
 
-        loadTime = (new Date()).getTime() - lastBufferStartTime;
-        if(debug) console.log(consoleLog + 'Took ' + loadTime + 'ms to init next video play');
-
-        if (debug) console.log(consoleLog + 'Playing ' + event.target.getVideoData().title);
-
-        var length = event.target.getDuration(); // Video Length In Seconds
-        var transTime = (loadTime + safezone);   // Calculate Transition Time (Previous Load Time + Safezone)
-
-        toggleBufferImage(false);
-
-
-        // Create our transition timer
-        // @TODO: Handle network drops, rebuild nintyTimer?
-        nintyTimer = setTimeout(function () {
-            if (tVideoDom.length <= 1) return;
-
-            // Play 2nd Videos
-            if (debug) console.log(consoleLog + 'Init play of next video');
-            loadStartTime = Date.now(); // Set time of transition start
-            tVideoVar[1].playVideo();   // Init Play Of Next Video
-        }, ((length * 1000) - transTime) - safezone);
-        if(debug)console.log(consoleLog + 'Video Overlap @ ' + ((((length * 1000) - transTime) - safezone) / 1000).toString() + 's');
-
-        // Fade out timer
-        // @TODO: Make Fade Work Properly
-        // @TODO: Add option to transition when next clip loads or after current clip finishes
-        setTimeout(function () {
-            var i = (tVideoVar[1].hasOwnProperty('getPlayerState')) ? 1 : 0;
-            var ii = (i === 1) ? 0 : 1;
-            tVideoVar[i].a.className = "active";
-            tVideoVar[ii].a.className = "";
-        }, (length * 1000) - fadeOutTime);
-        if(debug) console.log(consoleLog + 'Fadeout @ ' + (((length * 1000) - fadeOutTime) / 1000).toString() + 's');
-        if (debug) console.log(consoleLog + '--------------------------');
+        if(networkDropped)
+            handleNetworkDropPlaying(event);
+        else
+            handleNewVideoPlaying(event);
     }
 
     /**
@@ -254,6 +227,109 @@ window.SamJ_Mixer = (function (window) {
      */
     function handlePlayerBuffering(event) {
         lastBufferStartTime = (new Date()).getTime();
+
+        // Network Dropped so rebind nintytimer
+        if(event.target.getCurrentTime() !== 0 && event.target.getCurrentTime() !== queue[playing].start){
+            networkDropped = true;
+            console.log(consoleLog+'Network Dropped');
+            if(nintyTimer !== null) {
+                console.log(consoleLog+'Removed Ninty Timer');
+                clearTimeout(nintyTimer);
+                nintyTimer = null;
+            }
+            if(fadeTimer !== null){
+                console.log(consoleLog+'Removed Fade Timer');
+                clearTimeout(fadeTimer);
+                fadeTimer = null;
+            }
+            toggleBufferImage(true);
+        }
+
+        window.dog = event;
+    }
+
+    function handleNetworkDropPlaying(event){
+        networkDropped = false;
+        if (debug) console.log(consoleLog + '--------------------------');
+        if (debug) console.log(consoleLog + 'Recovered from network drop');
+
+        handleVideoPlay(event);
+    }
+
+    function handleNewVideoPlaying(event){
+        if (debug) console.log(consoleLog + '--------------------------');
+        if (debug) console.log(consoleLog + 'Next Video Started Playing');
+
+        loadTime = (new Date()).getTime() - lastBufferStartTime;
+        if (debug) console.log(consoleLog + 'Took ' + loadTime + 'ms to init next video play');
+        if (debug) console.log(consoleLog + 'Playing ' + event.target.getVideoData().title);
+
+        handleVideoPlay(event);
+    }
+
+    function handleVideoPlay(event){
+        var length;
+        if((queue[playing].end !== -1) && (queue[playing].end > queue[playing].start))
+            length = queue[playing].end;
+        else
+            length = event.target.getDuration();    // Get Video Duration
+
+            length -= event.target.getCurrentTime(); // Remove time already played
+
+        var transTime = (loadTime + safezone);   // Calculate Transition Time (Previous Load Time + Safezone)
+
+        toggleBufferImage(false);
+
+        // Create our transition timer
+        if(nintyTimer !== null) {
+            clearTimeout(nintyTimer);
+            nintyTimer = null;
+        }
+        var nintyTimerLength = ((length * 1000) - transTime) - safezone;
+        nintyTimer = setTimeout(function () {
+            if (tVideoVar.length <= 1) return;
+
+            // Play 2nd Videos
+            if (debug) console.log(consoleLog + 'Init play of next video');
+            loadStartTime = Date.now(); // Set time of transition start
+            tVideoVar[1].playVideo();   // Init Play Of Next Video
+        }, nintyTimerLength);
+        if (debug) console.log(consoleLog + 'Video Overlap @ ' + (nintyTimerLength / 1000).toString() + 's');
+
+        setTimeout(function(){
+            var i = (tVideoVar[1].hasOwnProperty('getPlayerState')) ? 1 : 0;
+            window.asd =  tVideoVar[i];
+            tVideoVar[i].setVolume(0);
+        }, 1500);
+
+        // Fade out timer
+        if(transitionOnEnd || (!transitionOnEnd && fadeTimer === null)) {
+            var fadeTimerLength = (length * 1000) - fadeOutTime;
+            fadeTimer = setTimeout(function () {
+                var i = (tVideoVar[1].hasOwnProperty('getPlayerState')) ? 1 : 0;
+                var ii = (i === 1) ? 0 : 1;
+                tVideoVar[i].a.className = "active";
+                tVideoVar[ii].a.className = "";
+
+                console.log(tVideoVar[ii]);
+            }, fadeTimerLength);
+
+
+        }else{
+            var i = (tVideoVar[1].hasOwnProperty('getPlayerState')) ? 1 : 0;
+            var ii = (i === 1) ? 0 : 1;
+            tVideoVar[i].a.className = "active";
+            tVideoVar[ii].a.className = "";
+
+            console.log(tVideoVar[ii]);
+            // audioInterval = setInterval(function(){
+            // }, 100)
+        }
+
+        if (debug) console.log(consoleLog + 'Fadeout @ ' + (fadeTimerLength / 1000).toString() + 's');
+        if (debug) console.log(consoleLog + 'Video Progress: ' + event.target.getCurrentTime());
+        if (debug) console.log(consoleLog + 'Video Length: ' + event.target.getDuration());
+        if (debug) console.log(consoleLog + '--------------------------');
     }
 
     /**
@@ -298,12 +374,12 @@ window.SamJ_Mixer = (function (window) {
             maxResults: GAPImaxResults
         },
         debug: debug,
-        tVideoDom: tVideoDom,
         tVideoVar: tVideoVar,
         startImage: startImage,
         shuffle: shuffle,
         toggleBufferImage: toggleBufferImage,
-        windowResized: handleWindowResize
+        windowResized: handleWindowResize,
+        playAudio: playAudio
     };
 
     return SamJ_Mixer;
@@ -317,7 +393,7 @@ window.SamJ_Mixer = (function (window) {
      * Callback Event For Youtube Iframe API Ready
      */
     window.onYouTubeIframeAPIReady = function () {
-        if (SamJ_Mixer.debug) console.log("+ SamJ Mixer: API READY");
+        if (SamJ_Mixer.debug) console.log("+ Youtube Seamless: API READY");
         if (SamJ_Mixer.gapi.key === null) SamJ_Mixer.onAPIReady();
     };
 
@@ -325,7 +401,7 @@ window.SamJ_Mixer = (function (window) {
      * Callback Event For Youtube Google API Ready
      */
     window.onGAPIReady = function () {
-        if (SamJ_Mixer.debug) console.log("+ SamJ Mixer: GAPI READY");
+        if (SamJ_Mixer.debug) console.log("+ Youtube Seamless: GAPI READY");
         if (SamJ_Mixer.gapi.key === null) return;
         gapi.client.setApiKey(SamJ_Mixer.gapi.key);
         gapi.client.load('youtube', 'v3', function () {
@@ -336,7 +412,7 @@ window.SamJ_Mixer = (function (window) {
             });
             request.execute(function (response) {
                 for (var i = 0; i < response.items.length; i++)
-                    SamJ_Mixer.playlist.push(response.items[i].snippet.resourceId.videoId, {start: 0, playfor: -1});
+                    SamJ_Mixer.playlist.push(response.items[i].snippet.resourceId.videoId, {start: 0, end: -1});
 
                 SamJ_Mixer.startPlayer();
             });

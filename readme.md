@@ -22,7 +22,9 @@ Mobile - Android
 - [ ] Firefox
 
 ## Todo
-- [ ] Audio & Audio Crossfade
 - [ ] Handle Letterbox View / Full Screen
 - [ ] Autoplay Native Android Browsers
-- [ ] Handle Network Drops
+- [ ] Remove Duplicate Code
+    - [ ] handleNewVideoPlaying...
+    - [ ] handleNetworkDroppedPlaying...        etc
+- [ ] Flicker on player remove/add from DOM sometimes
