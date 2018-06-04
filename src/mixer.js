@@ -44,6 +44,7 @@ window.SamJ_Mixer = (function (window) {
     /**
      * Inject Youtube API
      * @TODO: Add config flags to not load x API (Project may already load in other script)
+     * @TODO: Refactor
      */
     (function init() {
         var console_info = ["%c Youtube Seamless %cv"+version+" %c https://github.com/SamJUK/youtube-seamless", "background: #000000;color: #00ff99", "background: #000000;color: #fff", ""];
@@ -54,8 +55,7 @@ window.SamJ_Mixer = (function (window) {
         for (var i = 0; i < apis.length; i++) {
             var tag = document.createElement('script');
             tag.src = apis[i];
-            var firstScriptTag = document.getElementsByTagName('script')[0];
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            document.body.appendChild(tag);
         }
 
         window.addEventListener('resize', handleWindowResize);
@@ -80,6 +80,8 @@ window.SamJ_Mixer = (function (window) {
 
     /**
      * Handle Preloading Next Video
+     *
+     * @TODO: Refactor
      */
     function loadNextVideo() {
         // Guards
@@ -108,6 +110,8 @@ window.SamJ_Mixer = (function (window) {
     /**
      * Handle Loading The Video
      * @param video
+     *
+     * @TODO: Refactor - Abstract 116 - 135 into own function
      */
     function loadVideo(video) {
         // Create a temp element and spawn a youtube process on it
@@ -180,14 +184,14 @@ window.SamJ_Mixer = (function (window) {
      */
     function onPlayerStateChange(event) {
         // Next Video Has Started Playing
-        if (event.data === YT.PlayerState.PLAYING)
-            handlePlayerPlaying(event);
+        if ( event.data === YT.PlayerState.PLAYING )
+            return handlePlayerPlaying(event);
 
-        if (event.data === YT.PlayerState.ENDED)
-            handlePlayerEnd(event);
+        if ( event.data === YT.PlayerState.ENDED )
+            return handlePlayerEnd(event);
 
-        if (event.data === YT.PlayerState.BUFFERING)
-            handlePlayerBuffering(event);
+        if ( event.data === YT.PlayerState.BUFFERING )
+            return handlePlayerBuffering(event);
     }
 
     /**
@@ -229,25 +233,28 @@ window.SamJ_Mixer = (function (window) {
         lastBufferStartTime = (new Date()).getTime();
 
         // Network Dropped so rebind nintytimer
-        if(event.target.getCurrentTime() !== 0 && event.target.getCurrentTime() !== queue[playing].start){
-            networkDropped = true;
-            console.log(consoleLog+'Network Dropped');
-            if(nintyTimer !== null) {
-                console.log(consoleLog+'Removed Ninty Timer');
-                clearTimeout(nintyTimer);
-                nintyTimer = null;
-            }
-            if(fadeTimer !== null){
-                console.log(consoleLog+'Removed Fade Timer');
-                clearTimeout(fadeTimer);
-                fadeTimer = null;
-            }
-            toggleBufferImage(true);
-        }
+        if(event.target.getCurrentTime() === 0 || event.target.getCurrentTime() === queue[playing].start)
+            return;
 
-        window.dog = event;
+        networkDropped = true;
+        console.log(consoleLog+'Network Dropped');
+        if(nintyTimer !== null) {
+            console.log(consoleLog+'Removed Ninty Timer');
+            clearTimeout(nintyTimer);
+            nintyTimer = null;
+        }
+        if(fadeTimer !== null){
+            console.log(consoleLog+'Removed Fade Timer');
+            clearTimeout(fadeTimer);
+            fadeTimer = null;
+        }
+        toggleBufferImage(true);
     }
 
+    /**
+     * Started playing again after network drop
+     * @param event
+     */
     function handleNetworkDropPlaying(event){
         networkDropped = false;
         if (debug) console.log(consoleLog + '--------------------------');
@@ -256,6 +263,10 @@ window.SamJ_Mixer = (function (window) {
         handleVideoPlay(event);
     }
 
+    /**
+     * Started playing a new video
+     * @param event
+     */
     function handleNewVideoPlaying(event){
         if (debug) console.log(consoleLog + '--------------------------');
         if (debug) console.log(consoleLog + 'Next Video Started Playing');
@@ -267,14 +278,23 @@ window.SamJ_Mixer = (function (window) {
         handleVideoPlay(event);
     }
 
+
+    /**
+     * @param event
+     *
+     * @TODO: Refactor, function wayyy to big
+     */
     function handleVideoPlay(event){
         var length;
-        if((queue[playing].end !== -1) && (queue[playing].end > queue[playing].start))
-            length = queue[playing].end;
-        else
-            length = event.target.getDuration();    // Get Video Duration
 
-            length -= event.target.getCurrentTime(); // Remove time already played
+        // Get Video Duration
+        if((queue[playing].end !== -1) && (queue[playing].end > queue[playing].start)){
+            length = queue[playing].end;
+        } else{
+            length = event.target.getDuration();
+        }
+
+        length -= event.target.getCurrentTime(); // Remove time already played
 
         var transTime = (loadTime + safezone);   // Calculate Transition Time (Previous Load Time + Safezone)
 
@@ -338,13 +358,14 @@ window.SamJ_Mixer = (function (window) {
      * @returns bool
      */
     function toggleBufferImage(bool) {
-        //if(typeof(bool) !== 'boolean') bool = !startImageShowing;
 
-        // Hide the buffer image
-        if (document.getElementsByClassName('bufferImage').length > 0) {
-            for (var i = 0; i < document.getElementsByClassName('bufferImage').length; i++)
-                document.getElementsByClassName('bufferImage')[i].style.opacity = (bool) ? 1 : 0;
-        }
+        var buffer_images = document.getElementsByClassName('bufferImage');
+
+        if (buffer_images.length === 0)
+            return console.error('No Buffer Image');
+
+        for (var i = 0; i < buffer_images.length; i++)
+            buffer_images[i].style.opacity = bool ? 1 : 0;
 
         return startImageShowing = bool;
     }
@@ -399,6 +420,8 @@ window.SamJ_Mixer = (function (window) {
 
     /**
      * Callback Event For Youtube Google API Ready
+     *
+     * @TODO: Refactor
      */
     window.onGAPIReady = function () {
         if (SamJ_Mixer.debug) console.log("+ Youtube Seamless: GAPI READY");
