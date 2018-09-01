@@ -9,7 +9,6 @@ window.SamJ_Mixer = (function (window) {
     //--------------------------
     var containerID = 'overlay',		// Container to inject videos into
         version = 1,                    // Script Version Number
-        consoleLog = '+ Youtube Seamless: ',	// Console log Suffix
         GAPIKey = null,					// Google API Key (Used for fetching playlist data)
         GAPImaxResults = 50,			// Youtube Playlist Max Results
         startImage = null,				// URL for buffer image
@@ -22,7 +21,7 @@ window.SamJ_Mixer = (function (window) {
         firstplay = true,				// Is this the first video playing?
         loadTime = 1500, 				// Default Load Time Value ms
         PlaylistReady = false,			// Is the playlist ready to be played?
-        debug = true,					// Is script in debug mode (Console Logging)
+        debug_enabled = true,			// Is script in debug mode (Console Logging)
         playing = 0,					// Current playing videos Index
         isPlaying = false,				// Is a video currently playing
         queue = [],						// Array containing video ID's and parameters
@@ -35,7 +34,8 @@ window.SamJ_Mixer = (function (window) {
         lastBufferStartTime = null,     // Epoch time of when the last buffer started
         networkDropped = false,         // Have we dropped connection
         transitionOnEnd = true,         // Switch to next video at the end of current.
-        audioInterval = null;
+        audioInterval = null,
+        showVersionInConsole = true;
 
     //--------------------------
     //------- Internal Functions
@@ -47,10 +47,12 @@ window.SamJ_Mixer = (function (window) {
      * @TODO: Refactor
      */
     (function init() {
-        var console_info = ["%c Youtube Seamless %cv"+version+" %c https://github.com/SamJUK/youtube-seamless", "background: #000000;color: #00ff99", "background: #000000;color: #fff", ""];
-        console.log.apply(console, console_info);
+        if(showVersionInConsole){
+            var console_info = ["%c Youtube Seamless %cv"+version+" %c https://github.com/SamJUK/youtube-seamless", "background: #000000;color: #00ff99", "background: #000000;color: #fff", ""];
+            console.log.apply(console, console_info);
+        }
 
-        if (debug) console.log(consoleLog + "LOADING API");
+        debug("LOADING API");
         var apis = ['https://apis.google.com/js/client.js?onload=onGAPIReady', 'https://www.youtube.com/iframe_api'];
         for (var i = 0; i < apis.length; i++) {
             var tag = document.createElement('script');
@@ -67,7 +69,7 @@ window.SamJ_Mixer = (function (window) {
      * @param opts
      */
     function playlistPush(id, opts) {
-        if (debug) console.log(consoleLog + '#' + id + ' has been pushed to the queue.');
+        debug('#' + id + ' has been pushed to the queue.');
 
         // Default Options
         var temp = {};
@@ -85,9 +87,9 @@ window.SamJ_Mixer = (function (window) {
      */
     function loadNextVideo() {
         // Guards
-        if (queue.length === 0) return console.error(consoleLog + 'Empty Queue!');
-        if (debug && queue.length === 1) return console.warn(consoleLog + 'Add more videos for an optimal experience');
-        if (debug && tVideoVar.length >= 2) return console.warn(consoleLog + 'Aborting Preload, already a video waiting');
+        if (queue.length === 0) return debug('Empty Queue!', 'error');
+        if (queue.length === 1) return debug('Add more videos for an optimal experience', 'warn');
+        if (tVideoVar.length >= 2) return debug('Aborting Preload, already a video waiting', 'warn');
 
         // Linear Playback
         if (!SamJ_Mixer.shuffle && (++playing >= queue.length)) {
@@ -101,7 +103,7 @@ window.SamJ_Mixer = (function (window) {
             }
         }
         if (playing < 0) playing = 0;
-        if (debug) console.log(consoleLog + 'Loading Next Video: #' + queue[playing].id);
+        debug('Loading Next Video: #' + queue[playing].id);
         loadVideo(queue[playing]);
 
         lastPlayed = queue[playing];
@@ -199,12 +201,12 @@ window.SamJ_Mixer = (function (window) {
      * @param event
      */
     function handlePlayerEnd(event) {
-        if (debug) console.log(consoleLog + 'Ended ' + event.target.getVideoData().title);
+        debug('Ended ' + event.target.getVideoData().title);
 
         // Remove Played Video
         event.target.a.outerHTML = '';
         tVideoVar.splice(0, 1);
-        if (debug) console.log(consoleLog + 'Removed ' + tVideoVar[0].getVideoData().title);
+        debug('Removed ' + tVideoVar[0].getVideoData().title);
 
         // Load Next Video
         loadNextVideo();
@@ -237,14 +239,14 @@ window.SamJ_Mixer = (function (window) {
             return;
 
         networkDropped = true;
-        console.log(consoleLog+'Network Dropped');
+        debug('Network Issue, Started Buffering...', 'warn');
         if(nintyTimer !== null) {
-            console.log(consoleLog+'Removed Ninty Timer');
+            debug('Removed Ninty Timer');
             clearTimeout(nintyTimer);
             nintyTimer = null;
         }
         if(fadeTimer !== null){
-            console.log(consoleLog+'Removed Fade Timer');
+            debug('Removed Fade Timer');
             clearTimeout(fadeTimer);
             fadeTimer = null;
         }
@@ -257,8 +259,8 @@ window.SamJ_Mixer = (function (window) {
      */
     function handleNetworkDropPlaying(event){
         networkDropped = false;
-        if (debug) console.log(consoleLog + '--------------------------');
-        if (debug) console.log(consoleLog + 'Recovered from network drop');
+        debug('--------------------------');
+        debug('Recovered from network drop');
 
         handleVideoPlay(event);
     }
@@ -268,12 +270,13 @@ window.SamJ_Mixer = (function (window) {
      * @param event
      */
     function handleNewVideoPlaying(event){
-        if (debug) console.log(consoleLog + '--------------------------');
-        if (debug) console.log(consoleLog + 'Next Video Started Playing');
+        console.groupCollapsed('Video Playing');
+        debug('--------------------------');
+        debug('Next Video Started Playing');
 
         loadTime = (new Date()).getTime() - lastBufferStartTime;
-        if (debug) console.log(consoleLog + 'Took ' + loadTime + 'ms to init next video play');
-        if (debug) console.log(consoleLog + 'Playing ' + event.target.getVideoData().title);
+        debug('Took ' + loadTime + 'ms to init next video play');
+        debug('Playing ' + event.target.getVideoData().title);
 
         handleVideoPlay(event);
     }
@@ -310,11 +313,11 @@ window.SamJ_Mixer = (function (window) {
             if (tVideoVar.length <= 1) return;
 
             // Play 2nd Videos
-            if (debug) console.log(consoleLog + 'Init play of next video');
+            debug('Init play of next video');
             loadStartTime = Date.now(); // Set time of transition start
             tVideoVar[1].playVideo();   // Init Play Of Next Video
         }, nintyTimerLength);
-        if (debug) console.log(consoleLog + 'Video Overlap @ ' + (nintyTimerLength / 1000).toString() + 's');
+        debug('Video Overlap @ ' + (nintyTimerLength / 1000).toString() + 's');
 
         setTimeout(function(){
             var i = (tVideoVar[1].hasOwnProperty('getPlayerState')) ? 1 : 0;
@@ -330,8 +333,6 @@ window.SamJ_Mixer = (function (window) {
                 var ii = (i === 1) ? 0 : 1;
                 tVideoVar[i].a.className = "active";
                 tVideoVar[ii].a.className = "";
-
-                console.log(tVideoVar[ii]);
             }, fadeTimerLength);
 
 
@@ -346,10 +347,11 @@ window.SamJ_Mixer = (function (window) {
             // }, 100)
         }
 
-        if (debug) console.log(consoleLog + 'Fadeout @ ' + (fadeTimerLength / 1000).toString() + 's');
-        if (debug) console.log(consoleLog + 'Video Progress: ' + event.target.getCurrentTime());
-        if (debug) console.log(consoleLog + 'Video Length: ' + event.target.getDuration());
-        if (debug) console.log(consoleLog + '--------------------------');
+        debug('Fadeout @ ' + (fadeTimerLength / 1000).toString() + 's');
+        debug('Video Progress: ' + event.target.getCurrentTime());
+        debug('Video Length: ' + event.target.getDuration());
+        debug('--------------------------');
+        console.groupEnd('Video Playing');
     }
 
     /**
@@ -378,6 +380,19 @@ window.SamJ_Mixer = (function (window) {
         for (var key in tVideoVar) {
             tVideoVar[key].setSize(window.innerWidth, window.innerHeight);
         }
+    }
+
+    /**
+     * Handle Displaying Debug Logic
+     */
+    function debug(message, severity) {
+        if(!debug_enabled && severity !== 'error') return;
+
+        if(!['info', 'warn', 'error'].includes(severity)){
+            severity = 'info';
+        }
+
+        console[severity]('+ Youtube Seamless: ' + message);
     }
 
     //--------------------------
@@ -414,7 +429,7 @@ window.SamJ_Mixer = (function (window) {
      * Callback Event For Youtube Iframe API Ready
      */
     window.onYouTubeIframeAPIReady = function () {
-        if (SamJ_Mixer.debug) console.log("+ Youtube Seamless: API READY");
+        SamJ_Mixer.debug("API READY");
         if (SamJ_Mixer.gapi.key === null) SamJ_Mixer.onAPIReady();
     };
 
@@ -424,7 +439,7 @@ window.SamJ_Mixer = (function (window) {
      * @TODO: Refactor
      */
     window.onGAPIReady = function () {
-        if (SamJ_Mixer.debug) console.log("+ Youtube Seamless: GAPI READY");
+        SamJ_Mixer.debug('GAPI READY');
         if (SamJ_Mixer.gapi.key === null) return;
         gapi.client.setApiKey(SamJ_Mixer.gapi.key);
         gapi.client.load('youtube', 'v3', function () {
@@ -434,8 +449,10 @@ window.SamJ_Mixer = (function (window) {
                 maxResults: SamJ_Mixer.gapi.maxResults
             });
             request.execute(function (response) {
+                console.groupCollapsed('Playlist items');
                 for (var i = 0; i < response.items.length; i++)
                     SamJ_Mixer.playlist.push(response.items[i].snippet.resourceId.videoId, {start: 0, end: -1});
+                console.groupEnd('Playlist items');
 
                 SamJ_Mixer.startPlayer();
             });
