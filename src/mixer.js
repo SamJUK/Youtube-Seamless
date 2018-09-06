@@ -119,7 +119,7 @@ window.SamJ_Mixer = (function (window) {
         // Create a temp element and spawn a youtube process on it
         var tempElement = document.createElement('div');
         document.getElementById(containerID).appendChild(tempElement);
-        video = new YT.Player(tempElement, {
+        yt_video = new YT.Player(tempElement, {
             videoId: video.id,
             playerVars: {
                 volume: 1,
@@ -140,11 +140,19 @@ window.SamJ_Mixer = (function (window) {
         // This is the first video
         if (firstplay) {
             firstplay = false;
-            video.a.className = "active";
+            yt_video.a.className = "active";
+
+            debug(video.id);
+            var evnt = new CustomEvent('FirstVideoLoad', {
+                detail: {
+                    video_id: video.id
+                }
+            });
+            document.getElementById(containerID).dispatchEvent(evnt);
         }
 
         // Add to our Youtube Container
-        tVideoVar.push(video);
+        tVideoVar.push(yt_video);
     }
 
     /**
@@ -202,6 +210,15 @@ window.SamJ_Mixer = (function (window) {
      */
     function handlePlayerEnd(event) {
         debug('Ended ' + event.target.getVideoData().title);
+
+        var video_id = event.target.getVideoData().video_id;
+        debug(video_id);
+        var evnt = new CustomEvent('VideoEnded', {
+            detail: {
+                video_id: video_id
+            }
+        });
+        document.getElementById(containerID).dispatchEvent(evnt);
 
         // Remove Played Video
         event.target.a.outerHTML = '';
@@ -279,6 +296,15 @@ window.SamJ_Mixer = (function (window) {
         debug('Playing ' + event.target.getVideoData().title);
 
         handleVideoPlay(event);
+
+        var video_id = event.target.getVideoData().video_id;
+        debug(video_id);
+        var evnt = new CustomEvent('NewVideoPlaying', {
+            detail: {
+                video_id: video_id
+            }
+        });
+        document.getElementById(containerID).dispatchEvent(evnt);
     }
 
 
@@ -443,19 +469,21 @@ window.SamJ_Mixer = (function (window) {
         if (SamJ_Mixer.gapi.key === null) return;
         gapi.client.setApiKey(SamJ_Mixer.gapi.key);
         gapi.client.load('youtube', 'v3', function () {
-            var request = gapi.client.youtube.playlistItems.list({
-                part: 'snippet,contentDetails',
-                playlistId: SamJ_Mixer.playlist.id,
-                maxResults: SamJ_Mixer.gapi.maxResults
-            });
-            request.execute(function (response) {
-                console.groupCollapsed('Playlist items');
-                for (var i = 0; i < response.items.length; i++)
-                    SamJ_Mixer.playlist.push(response.items[i].snippet.resourceId.videoId, {start: 0, end: -1});
-                console.groupEnd('Playlist items');
+            if(SamJ_Mixer.playlist.id !== null){
+                var request = gapi.client.youtube.playlistItems.list({
+                    part: 'snippet,contentDetails',
+                    playlistId: SamJ_Mixer.playlist.id,
+                    maxResults: SamJ_Mixer.gapi.maxResults
+                });
+                request.execute(function (response) {
+                    console.groupCollapsed('Playlist items');
+                    for (var i = 0; i < response.items.length; i++)
+                        SamJ_Mixer.playlist.push(response.items[i].snippet.resourceId.videoId, {start: 0, end: -1});
+                    console.groupEnd('Playlist items');
 
-                SamJ_Mixer.startPlayer();
-            });
+                    SamJ_Mixer.startPlayer();
+                });
+            }
         });
         SamJ_Mixer.onAPIReady();
     };
