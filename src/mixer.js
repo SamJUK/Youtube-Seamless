@@ -38,13 +38,20 @@ window.SamJ_Mixer = (function (window) {
         showVersionInConsole = true;
 
     //--------------------------
+    //------- Polyfill Functions
+    //--------------------------
+    if(typeof console.group !== 'function') console.group = function(name) { console.log('--- GROUP STARTED: ' + name + '---') };
+    if(typeof console.groupCollapsed !== 'function') console.groupCollapsed = function(name) { console.log('--- GROUP STARTED: ' + name + '---') };
+    if(typeof console.groupEnd !== 'function') console.groupEnd = function(name) { console.log('--- GROUP ENDED: ' + name + '---') };
+
+
+    //--------------------------
     //------- Internal Functions
     //--------------------------
 
     /**
      * Inject Youtube API
      * @TODO: Add config flags to not load x API (Project may already load in other script)
-     * @TODO: Refactor
      */
     (function init() {
         if(showVersionInConsole){
@@ -52,6 +59,11 @@ window.SamJ_Mixer = (function (window) {
             console.log.apply(console, console_info);
         }
 
+        loadGoogleAPIs();
+        window.addEventListener('resize', handleWindowResize);
+    })();
+
+    function loadGoogleAPIs() {
         debug("LOADING API");
         var apis = ['https://apis.google.com/js/client.js?onload=onGAPIReady', 'https://www.youtube.com/iframe_api'];
         for (var i = 0; i < apis.length; i++) {
@@ -59,9 +71,7 @@ window.SamJ_Mixer = (function (window) {
             tag.src = apis[i];
             document.body.appendChild(tag);
         }
-
-        window.addEventListener('resize', handleWindowResize);
-    })();
+    }
 
     /**
      * Handle Adding Videos To The Queue Manually
@@ -119,23 +129,7 @@ window.SamJ_Mixer = (function (window) {
         // Create a temp element and spawn a youtube process on it
         var tempElement = document.createElement('div');
         document.getElementById(containerID).appendChild(tempElement);
-        yt_video = new YT.Player(tempElement, {
-            videoId: video.id,
-            playerVars: {
-                volume: 1,
-                controls: 0,
-                disablekb: 1,
-                iv_load_policy: 3,
-                showinfo: 0,
-                rel: 0,
-                start: video.start,
-                modestbranding: 1
-            },
-            events: {
-                onReady: onPlayerReady,
-                onStateChange: onPlayerStateChange
-            }
-        });
+        yt_video = createYoutubePlayer(video.id);
 
         // This is the first video
         if (firstplay) {
@@ -153,6 +147,28 @@ window.SamJ_Mixer = (function (window) {
 
         // Add to our Youtube Container
         tVideoVar.push(yt_video);
+    }
+
+    function createYoutubePlayer(videoID) {
+        var tempElement = document.createElement('div');
+        document.getElementById(containerID).appendChild(tempElement);
+        return new YT.Player(tempElement, {
+            videoId: videoID,
+            playerVars: {
+                volume: 1,
+                controls: 0,
+                disablekb: 1,
+                iv_load_policy: 3,
+                showinfo: 0,
+                rel: 0,
+                start: video.start,
+                modestbranding: 1
+            },
+            events: {
+                onReady: onPlayerReady,
+                onStateChange: onPlayerStateChange
+            }
+        });
     }
 
     /**
@@ -360,8 +376,6 @@ window.SamJ_Mixer = (function (window) {
                 tVideoVar[i].a.className = "active";
                 tVideoVar[ii].a.className = "";
             }, fadeTimerLength);
-
-
         }else{
             var i = (tVideoVar[1].hasOwnProperty('getPlayerState')) ? 1 : 0;
             var ii = (i === 1) ? 0 : 1;
@@ -369,8 +383,6 @@ window.SamJ_Mixer = (function (window) {
             tVideoVar[ii].a.className = "";
 
             console.log(tVideoVar[ii]);
-            // audioInterval = setInterval(function(){
-            // }, 100)
         }
 
         debug('Fadeout @ ' + (fadeTimerLength / 1000).toString() + 's');
