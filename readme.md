@@ -5,7 +5,6 @@ Youtube Seamless is a javascript libaray that allows for playback of youtube vid
 # Content
 1. [Getting Started](#Getting-started)
 2. [Support Guide](#support-guide)
-3. [Todo](#todo)
 
 
 # Getting Started
@@ -40,15 +39,6 @@ Youtube Seamless is a javascript libaray that allows for playback of youtube vid
 })();
 </script>
 ```
-
-
-# Todo
-- [ ] Handle Letterbox View / Full Screen
-- [ ] Autoplay Native Android Browsers
-- [ ] Remove Duplicate Code
-    - [ ] handleNewVideoPlaying...
-    - [ ] handleNetworkDroppedPlaying...        etc
-- [ ] Flicker on player remove/add from DOM sometimes
 
 # Support Guide
 Not guaranteed support, but seemed fine to me... ¯\\\_(ツ)\_/¯
