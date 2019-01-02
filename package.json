@@ -14,7 +14,10 @@
   },
   "homepage": "https://github.com/SamJUK/Youtube-Seamless#readme",
   "devDependencies": {
+    "del": "^2.0.2",
     "gulp": "^3.9.0",
-    "gulp-uglify": "^2.0.0"
+    "gulp-uglify": "^2.0.0",
+    "lodash": ">=4.17.5",
+    "minimatch": ">=3.0.2"
   }
 }

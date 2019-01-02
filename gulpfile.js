@@ -1,7 +1,11 @@
 'use strict';
 
+var del = require('del');
 var gulp = require('gulp');
 var uglify = require('gulp-uglify');
+
+// Clean output directory
+gulp.task('clean', () => del(['dist']));
 
 // Gulp task to minify JavaScript files
 gulp.task('scripts', function() {
@@ -11,4 +15,6 @@ gulp.task('scripts', function() {
 });
 
 // Gulp task to minify all files
-gulp.task('default', ['scripts']);
+gulp.task('default', ['clean'], function () {
+    runSequence('scripts');
+});
