@@ -2,13 +2,6 @@
   "name": "Youtube-Seamless",
   "version": "1.0.0",
   "description": "Youtube Seamless is a javascript libaray that allows for playback of youtube videos and aims to remove the buffering between each of the videos. By initating the playback of the next video before the current active one finishes, using the buffer time of the previous video.",
-  "main": "index.js",
-  "directories": {
-    "example": "example"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SamJUK/Youtube-Seamless.git"
