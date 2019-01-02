@@ -40,9 +40,21 @@ window.SamJ_Mixer = (function (window) {
     //--------------------------
     //------- Polyfill Functions
     //--------------------------
-    if(typeof console.group !== 'function') console.group = function(name) { console.log('--- GROUP STARTED: ' + name + '---') };
-    if(typeof console.groupCollapsed !== 'function') console.groupCollapsed = function(name) { console.log('--- GROUP STARTED: ' + name + '---') };
-    if(typeof console.groupEnd !== 'function') console.groupEnd = function(name) { console.log('--- GROUP ENDED: ' + name + '---') };
+    if(typeof console.group !== 'function') {
+        console.group = function (name) {
+            console.log('--- GROUP STARTED: ' + name + '---');
+        };
+    }
+    if(typeof console.groupCollapsed !== 'function') {
+        console.groupCollapsed = function (name) {
+            console.log('--- GROUP STARTED: ' + name + '---');
+        };
+    }
+    if(typeof console.groupEnd !== 'function') {
+        console.groupEnd = function (name) {
+            console.log('--- GROUP ENDED: ' + name + '---');
+        };
+    }
 
 
     //--------------------------
@@ -51,10 +63,9 @@ window.SamJ_Mixer = (function (window) {
 
     /**
      * Inject Youtube API
-     * @TODO: Add config flags to not load x API (Project may already load in other script)
      */
     (function init() {
-        if(showVersionInConsole){
+        if(showVersionInConsole) {
             var console_info = ["%c Youtube Seamless %cv"+version+" %c https://github.com/SamJUK/youtube-seamless", "background: #000000;color: #00ff99", "background: #000000;color: #fff", ""];
             console.log.apply(console, console_info);
         }
@@ -63,6 +74,9 @@ window.SamJ_Mixer = (function (window) {
         window.addEventListener('resize', handleWindowResize);
     })();
 
+    /**
+     * @TODO: Add config flags to not load x API (Project may already load in other script)
+     */
     function loadGoogleAPIs() {
         debug("LOADING API");
         var apis = ['https://apis.google.com/js/client.js?onload=onGAPIReady', 'https://www.youtube.com/iframe_api'];
@@ -97,9 +111,15 @@ window.SamJ_Mixer = (function (window) {
      */
     function loadNextVideo() {
         // Guards
-        if (queue.length === 0) return debug('Empty Queue!', 'error');
-        if (queue.length === 1) return debug('Add more videos for an optimal experience', 'warn');
-        if (tVideoVar.length >= 2) return debug('Aborting Preload, already a video waiting', 'warn');
+        if (queue.length === 0) {
+            return debug('Empty Queue!', 'error');
+        }
+        if (queue.length === 1) {
+            return debug('Add more videos for an optimal experience', 'warn');
+        }
+        if (tVideoVar.length >= 2) {
+            return debug('Aborting Preload, already a video waiting', 'warn');
+        }
 
         // Linear Playback
         if (!SamJ_Mixer.shuffle && (++playing >= queue.length)) {
@@ -109,13 +129,18 @@ window.SamJ_Mixer = (function (window) {
             var unique = false;
             while (!unique) {
                 playing = Math.round(Math.random() * queue.length) - 1;
-                if (lastPlayed === null || playing !== lastPlayed) unique = true;
+                if (lastPlayed === null || playing !== lastPlayed) {
+                    unique = true;
+                }
             }
         }
-        if (playing < 0) playing = 0;
+
+        if (playing < 0) {
+            playing = 0;
+        }
+
         debug('Loading Next Video: #' + queue[playing].id);
         loadVideo(queue[playing]);
-
         lastPlayed = queue[playing];
     }
 
@@ -123,7 +148,7 @@ window.SamJ_Mixer = (function (window) {
      * Handle Loading The Video
      * @param video
      *
-     * @TODO: Refactor - Abstract 116 - 135 into own function
+     * @TODO: Refactor - Abstract First play into own function
      */
     function loadVideo(video) {
         // Create a temp element and spawn a youtube process on it
@@ -137,12 +162,12 @@ window.SamJ_Mixer = (function (window) {
             yt_video.a.className = "active";
 
             debug(video.id);
-            var evnt = new CustomEvent('FirstVideoLoad', {
+            var event = new CustomEvent('FirstVideoLoad', {
                 detail: {
                     video_id: video.id
                 }
             });
-            document.getElementById(containerID).dispatchEvent(evnt);
+            document.getElementById(containerID).dispatchEvent(event);
         }
 
         // Add to our Youtube Container
@@ -152,6 +177,7 @@ window.SamJ_Mixer = (function (window) {
     function createYoutubePlayer(videoID) {
         var tempElement = document.createElement('div');
         document.getElementById(containerID).appendChild(tempElement);
+
         return new YT.Player(tempElement, {
             videoId: videoID,
             playerVars: {
@@ -193,7 +219,9 @@ window.SamJ_Mixer = (function (window) {
      */
     function onAPIReady() {
         APIReady = true;
-        if (PlaylistReady) loadNextVideo();
+        if (PlaylistReady) {
+           loadNextVideo();
+        }
     }
 
     /**
@@ -201,7 +229,9 @@ window.SamJ_Mixer = (function (window) {
      */
     function startPlayer() {
         PlaylistReady = true;
-        if (APIReady) loadNextVideo();
+        if (APIReady) {
+            loadNextVideo();
+        }
     }
 
     /**
@@ -210,14 +240,17 @@ window.SamJ_Mixer = (function (window) {
      */
     function onPlayerStateChange(event) {
         // Next Video Has Started Playing
-        if ( event.data === YT.PlayerState.PLAYING )
+        if (event.data === YT.PlayerState.PLAYING) {
             return handlePlayerPlaying(event);
+        }
 
-        if ( event.data === YT.PlayerState.ENDED )
+        if (event.data === YT.PlayerState.ENDED) {
             return handlePlayerEnd(event);
+        }
 
-        if ( event.data === YT.PlayerState.BUFFERING )
+        if (event.data === YT.PlayerState.BUFFERING) {
             return handlePlayerBuffering(event);
+        }
     }
 
     /**
@@ -229,12 +262,12 @@ window.SamJ_Mixer = (function (window) {
 
         var video_id = event.target.getVideoData().video_id;
         debug(video_id);
-        var evnt = new CustomEvent('VideoEnded', {
+        var event = new CustomEvent('VideoEnded', {
             detail: {
                 video_id: video_id
             }
         });
-        document.getElementById(containerID).dispatchEvent(evnt);
+        document.getElementById(containerID).dispatchEvent(event);
 
         // Remove Played Video
         event.target.a.outerHTML = '';
@@ -251,13 +284,15 @@ window.SamJ_Mixer = (function (window) {
      */
     function handlePlayerPlaying(event) {
         // Mute Video
-        if(!SamJ_Mixer.playAudio)
+        if(!SamJ_Mixer.playAudio) {
             event.target.mute();
+        }
 
-        if(networkDropped)
+        if(networkDropped) {
             handleNetworkDropPlaying(event);
-        else
+        } else {
             handleNewVideoPlaying(event);
+        }
     }
 
     /**
@@ -268,21 +303,25 @@ window.SamJ_Mixer = (function (window) {
         lastBufferStartTime = (new Date()).getTime();
 
         // Network Dropped so rebind nintytimer
-        if(event.target.getCurrentTime() === 0 || event.target.getCurrentTime() === queue[playing].start)
+        if(event.target.getCurrentTime() === 0 || event.target.getCurrentTime() === queue[playing].start) {
             return;
+        }
 
         networkDropped = true;
         debug('Network Issue, Started Buffering...', 'warn');
+        
         if(nintyTimer !== null) {
             debug('Removed Ninty Timer');
             clearTimeout(nintyTimer);
             nintyTimer = null;
         }
-        if(fadeTimer !== null){
+
+        if(fadeTimer !== null) {
             debug('Removed Fade Timer');
             clearTimeout(fadeTimer);
             fadeTimer = null;
         }
+
         toggleBufferImage(true);
     }
 
@@ -290,11 +329,10 @@ window.SamJ_Mixer = (function (window) {
      * Started playing again after network drop
      * @param event
      */
-    function handleNetworkDropPlaying(event){
+    function handleNetworkDropPlaying(event) {
         networkDropped = false;
         debug('--------------------------');
         debug('Recovered from network drop');
-
         handleVideoPlay(event);
     }
 
@@ -302,7 +340,7 @@ window.SamJ_Mixer = (function (window) {
      * Started playing a new video
      * @param event
      */
-    function handleNewVideoPlaying(event){
+    function handleNewVideoPlaying(event) {
         console.groupCollapsed('Video Playing');
         debug('--------------------------');
         debug('Next Video Started Playing');
@@ -315,12 +353,12 @@ window.SamJ_Mixer = (function (window) {
 
         var video_id = event.target.getVideoData().video_id;
         debug(video_id);
-        var evnt = new CustomEvent('NewVideoPlaying', {
+        var event = new CustomEvent('NewVideoPlaying', {
             detail: {
                 video_id: video_id
             }
         });
-        document.getElementById(containerID).dispatchEvent(evnt);
+        document.getElementById(containerID).dispatchEvent(event);
     }
 
 
@@ -329,13 +367,13 @@ window.SamJ_Mixer = (function (window) {
      *
      * @TODO: Refactor, function wayyy to big
      */
-    function handleVideoPlay(event){
+    function handleVideoPlay(event) {
         var length;
 
         // Get Video Duration
-        if((queue[playing].end !== -1) && (queue[playing].end > queue[playing].start)){
+        if((queue[playing].end !== -1) && (queue[playing].end > queue[playing].start)) {
             length = queue[playing].end;
-        } else{
+        } else {
             length = event.target.getDuration();
         }
 
@@ -350,9 +388,12 @@ window.SamJ_Mixer = (function (window) {
             clearTimeout(nintyTimer);
             nintyTimer = null;
         }
+
         var nintyTimerLength = ((length * 1000) - transTime) - safezone;
         nintyTimer = setTimeout(function () {
-            if (tVideoVar.length <= 1) return;
+            if (tVideoVar.length <= 1) {
+                return;
+            }
 
             // Play 2nd Videos
             debug('Init play of next video');
@@ -361,9 +402,9 @@ window.SamJ_Mixer = (function (window) {
         }, nintyTimerLength);
         debug('Video Overlap @ ' + (nintyTimerLength / 1000).toString() + 's');
 
-        setTimeout(function(){
+        setTimeout(function () {
             var i = (tVideoVar[1].hasOwnProperty('getPlayerState')) ? 1 : 0;
-            window.asd =  tVideoVar[i];
+            window.asd = tVideoVar[i];
             tVideoVar[i].setVolume(0);
         }, 1500);
 
@@ -376,12 +417,11 @@ window.SamJ_Mixer = (function (window) {
                 tVideoVar[i].a.className = "active";
                 tVideoVar[ii].a.className = "";
             }, fadeTimerLength);
-        }else{
+        } else {
             var i = (tVideoVar[1].hasOwnProperty('getPlayerState')) ? 1 : 0;
             var ii = (i === 1) ? 0 : 1;
             tVideoVar[i].a.className = "active";
             tVideoVar[ii].a.className = "";
-
             console.log(tVideoVar[ii]);
         }
 
@@ -398,14 +438,15 @@ window.SamJ_Mixer = (function (window) {
      * @returns bool
      */
     function toggleBufferImage(bool) {
-
         var buffer_images = document.getElementsByClassName('bufferImage');
 
-        if (buffer_images.length === 0)
+        if (buffer_images.length === 0) {
             return console.error('No Buffer Image');
+        }
 
-        for (var i = 0; i < buffer_images.length; i++)
+        for (var i = 0; i < buffer_images.length; i++) {
             buffer_images[i].style.opacity = bool ? 1 : 0;
+        }
 
         return startImageShowing = bool;
     }
@@ -424,9 +465,11 @@ window.SamJ_Mixer = (function (window) {
      * Handle Displaying Debug Logic
      */
     function debug(message, severity) {
-        if(!debug_enabled && severity !== 'error') return;
+        if(!debug_enabled && severity !== 'error') {
+            return;
+        }
 
-        if(!['info', 'warn', 'error'].includes(severity)){
+        if(['info', 'warn', 'error'].includes(severity) === false){
             severity = 'info';
         }
 
@@ -468,7 +511,9 @@ window.SamJ_Mixer = (function (window) {
      */
     window.onYouTubeIframeAPIReady = function () {
         SamJ_Mixer.debug("API READY");
-        if (SamJ_Mixer.gapi.key === null) SamJ_Mixer.onAPIReady();
+        if (SamJ_Mixer.gapi.key === null) {
+            SamJ_Mixer.onAPIReady();
+        }
     };
 
     /**
@@ -478,10 +523,12 @@ window.SamJ_Mixer = (function (window) {
      */
     window.onGAPIReady = function () {
         SamJ_Mixer.debug('GAPI READY');
-        if (SamJ_Mixer.gapi.key === null) return;
+        if (SamJ_Mixer.gapi.key === null) {
+            return;
+        }
         gapi.client.setApiKey(SamJ_Mixer.gapi.key);
         gapi.client.load('youtube', 'v3', function () {
-            if(SamJ_Mixer.playlist.id !== null){
+            if(SamJ_Mixer.playlist.id !== null) {
                 var request = gapi.client.youtube.playlistItems.list({
                     part: 'snippet,contentDetails',
                     playlistId: SamJ_Mixer.playlist.id,
@@ -489,8 +536,9 @@ window.SamJ_Mixer = (function (window) {
                 });
                 request.execute(function (response) {
                     console.groupCollapsed('Playlist items');
-                    for (var i = 0; i < response.items.length; i++)
+                    for (var i = 0; i < response.items.length; i++) {
                         SamJ_Mixer.playlist.push(response.items[i].snippet.resourceId.videoId, {start: 0, end: -1});
+                    }
                     console.groupEnd('Playlist items');
 
                     SamJ_Mixer.startPlayer();
